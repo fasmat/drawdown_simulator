@@ -5,7 +5,7 @@ simulate_drawdown <- function(
   drawdown_period = 30,                     # Number of years in the drawdown period
   historical_data_file = "sp500.csv",       # Path to the historical returns data file
   max_payout = default_payout,              # Maximum payout function (e.g., $50,000 per year)
-  num_simulations = 10000                   # Number of simulations to run
+  num_simulations = 100000                  # Number of simulations to run
 ) {
     # Load historical returns data
     historical_returns <- read.csv(historical_data_file)
@@ -71,13 +71,13 @@ plot_drawdown <- function(payouts) {
     payouts_median <- apply(payouts[,1:(ncol(payouts)-1)], 2, median)
     payouts_q05 <- apply(payouts[,1:(ncol(payouts)-1)], 2, quantile, probs = 0.05)
     payouts_q10 <- apply(payouts[,1:(ncol(payouts)-1)], 2, quantile, probs = 0.10)
-    payouts_q15 <- apply(payouts[,1:(ncol(payouts)-1)], 2, quantile, probs = 0.15)
+    payouts_q25 <- apply(payouts[,1:(ncol(payouts)-1)], 2, quantile, probs = 0.25)
 
     remaining_values <- payouts[, ncol(payouts)]
     remaining_median <- median(remaining_values)
     remaining_q05 <- quantile(remaining_values, probs = 0.05)
     remaining_q10 <- quantile(remaining_values, probs = 0.10)
-    remaining_q15 <- quantile(remaining_values, probs = 0.15)
+    remaining_q25 <- quantile(remaining_values, probs = 0.25)
     
     # Create a plot of calculated payouts over time
     jpeg("drawdown_plot.jpg", width = 800, height = 600)
@@ -87,19 +87,21 @@ plot_drawdown <- function(payouts) {
     )
     lines(1:length(payouts_q05), payouts_q05, col = "darkred", lty = 2)
     lines(1:length(payouts_q10), payouts_q10, col = "red", lty = 2)
-    lines(1:length(payouts_q15), payouts_q15, col = "orange", lty = 2)
-    legend("topright", legend = c("Median", "5th Percentile", "10th Percentile", "15th Percentile"),
-           col = c("blue", "darkred", "red", "orange"), lty = c(1, 2, 2, 2))
+    lines(1:length(payouts_q25), payouts_q25, col = "orange", lty = 2)
+    legend("topright", legend = c("Median", "5th Percentile", "10th Percentile", "25th Percentile"),
+        col = c("blue", "darkred", "red", "orange"), lty = c(1, 2, 2, 2)
+    )
     grid()
 
     # Add info about remaining portfolio value at the end of the drawdown period
-    text(x = length(payouts_median) * 0.8, y = max(payouts_median) * 0.9, 
-         labels = paste0("Remaining Portfolio Value at Year ", ncol(payouts)-1, ":\n",
-                         "Median: $", round(remaining_median, 2), "\n",
-                         "5th Percentile: $", round(remaining_q05, 2), "\n",
-                         "10th Percentile: $", round(remaining_q10, 2), "\n",
-                         "15th Percentile: $", round(remaining_q15, 2)), 
-         cex = 0.8, col = "black")    
+    text(x = length(payouts_median) * 0.2, y = max(payouts_median) * 0.9, 
+        labels = paste0("Remaining Portfolio Value at Year ", ncol(payouts)-1, ":\n",
+                        "Median: $", round(remaining_median, 2), "\n",
+                        "5th Percentile: $", round(remaining_q05, 2), "\n",
+                        "10th Percentile: $", round(remaining_q10, 2), "\n",
+                        "25th Percentile: $", round(remaining_q25, 2)), 
+        cex = 0.8, col = "black"
+    )    
 
     dev.off()
 }

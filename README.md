@@ -41,13 +41,19 @@ the portfolio too quickly, resulting in low payouts in later years. For example,
 $50,000 per year increasing with inflation, you can define the `max_payout` function as follows:
 
 ```R
-max_payout = function(year) {
+default_payout <- function(year) {
   return(50000 * (1.03)^(year - 1))  # Assuming 3% inflation per year
 }
 ```
 
-By default, the `max_payout` function returns -1, which means there is no limit on the payout. You can customize this
-function to implement any payout strategy you prefer.
+If you do not want to limit the payout, you can simply set `max_payout` to a function that returns a negative value,
+ such as:
+
+```R
+no_limit_payout <- function(year) {
+  return(-1)
+}
+```
 
 ## Historical Data
 
