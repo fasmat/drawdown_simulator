@@ -1,24 +1,30 @@
 # Simulate drawdown scenarios for a retirement portfolio
 # styler: off
 simulate_drawdown <- function(
-    initial_portfolio_value = 1000000,        # Initial portfolio value
-    expected_return = 0.05,                   # Expected yearly return (e.g., 5%)
-    drawdown_period = 30,                     # Number of years in the drawdown period
-    historical_data_file = "msci_world.csv",  # Path to the historical returns data file
-    max_payout = default_payout,              # Maximum payout function (e.g., $50,000 per year)
-    num_simulations = 100000                  # Number of simulations to run
+    initial_portfolio_value = 1000000,  # Initial portfolio value
+    expected_return = 0.05,             # Expected yearly return (e.g., 5%)
+    drawdown_period = 30,               # Number of years in the drawdown period
+    historical_data = c(
+        "data/stocks/sp500.csv",
+        "data/bonds/10y_us_treasury.csv"
+    ), # Path to the historical returns data file(s)
+    investment_split = c(0.7, 0.3),     # Investment split between assets (e.g., 70% stocks, 30% bonds)
+    max_payout = default_payout,        # Maximum payout function (e.g., $50,000 per year)
+    num_simulations = 100000            # Number of simulations to run
 ) {
     # styler: on
     # Load historical returns data
-    historical_returns <- read.csv(historical_data_file)
+    historical_returns <- lapply(historical_data, read.csv)
 
     # Ensure the historical returns are in the correct format
-    if (!"return" %in% colnames(historical_returns)) {
-        stop("Historical data must contain a 'return' column.")
+    for (i in seq_along(historical_returns)) {
+        if (!"return" %in% colnames(historical_returns[[i]])) {
+            stop("Historical data must contain a 'return' column.")
+        }
     }
 
     # Extract the returns as a numeric vector
-    returns <- historical_returns$return
+    returns <- lapply(historical_returns, function(x) x$return)
 
     # Initialize a matrix to store the simulated portfolio values
     payouts <- matrix(0, nrow = num_simulations, ncol = drawdown_period + 1)
@@ -26,10 +32,11 @@ simulate_drawdown <- function(
     # Run simulations
     for (i in 1:num_simulations) {
         # Start with the initial portfolio value
-        portfolio_value <- initial_portfolio_value
+        portfolio_value <- initial_portfolio_value * investment_split
 
         for (year in 1:drawdown_period) {
-            calc_payout <- portfolio_value * annuity_rate(
+            total_value <- sum(portfolio_value)
+            calc_payout <- total_value * annuity_rate(
                 remaining_years = drawdown_period - year + 1,
                 interest_rate = expected_return
             )
@@ -40,14 +47,15 @@ simulate_drawdown <- function(
             calc_payout <- round(calc_payout, 2)
             payouts[i, year] <- calc_payout
 
-            # Randomly sample a return from the historical returns
-            random_return <- sample(returns, size = 1, replace = TRUE) / 100
+            # Randomly sample returns from the historical data for each asset class
+            random_returns <- sapply(returns, function(x) sample(x, size = 1, replace = TRUE)) / 100
 
-            portfolio_value <- portfolio_value - calc_payout
-            portfolio_value <- portfolio_value * (1 + random_return)
+            total_value <- total_value - calc_payout
+            portfolio_value <- total_value * investment_split
+            portfolio_value <- portfolio_value * (1 + random_returns)
             portfolio_value <- round(portfolio_value, 2)
         }
-        payouts[i, drawdown_period + 1] <- portfolio_value
+        payouts[i, drawdown_period + 1] <- sum(portfolio_value)
     }
 
     payouts
@@ -78,8 +86,8 @@ plot_drawdown <- function(payouts) {
     payouts_median <- payouts[samples * 0.5, ]
     payouts_q05 <- payouts[samples * 0.05, ]
     payouts_q10 <- payouts[samples * 0.10, ]
+    payouts_q15 <- payouts[samples * 0.15, ]
     payouts_q25 <- payouts[samples * 0.25, ]
-    payouts_q75 <- payouts[samples * 0.75, ]
 
     # Create a plot of calculated payouts over time
     jpeg("drawdown_plot.jpg", width = 800, height = 600)
@@ -92,11 +100,11 @@ plot_drawdown <- function(payouts) {
     )
     lines(seq_len(length(payouts_q05) - 1), payouts_q05[-length(payouts_q05)], col = "darkred", lty = 2)
     lines(seq_len(length(payouts_q10) - 1), payouts_q10[-length(payouts_q10)], col = "red", lty = 2)
-    lines(seq_len(length(payouts_q25) - 1), payouts_q25[-length(payouts_q25)], col = "orange", lty = 2)
-    lines(seq_len(length(payouts_q75) - 1), payouts_q75[-length(payouts_q75)], col = "green", lty = 2)
+    lines(seq_len(length(payouts_q15) - 1), payouts_q15[-length(payouts_q15)], col = "orange", lty = 2)
+    lines(seq_len(length(payouts_q25) - 1), payouts_q25[-length(payouts_q25)], col = "yellow", lty = 2)
     legend("topright",
-        legend = c("Median", "5th Percentile", "10th Percentile", "25th Percentile", "75th Percentile"),
-        col = c("blue", "darkred", "red", "orange", "green"), lty = c(1, 2, 2, 2, 2)
+        legend = c("Median", "5th Percentile", "10th Percentile", "15th Percentile", "25th Percentile"),
+        col = c("blue", "darkred", "red", "orange", "yellow"), lty = c(1, 2, 2, 2, 2)
     )
     grid()
 
@@ -108,8 +116,8 @@ plot_drawdown <- function(payouts) {
             "Median: $", round(payouts_median[length(payouts_median)], 2), "\n",
             "5th Percentile: $", round(payouts_q05[length(payouts_q05)], 2), "\n",
             "10th Percentile: $", round(payouts_q10[length(payouts_q10)], 2), "\n",
-            "25th Percentile: $", round(payouts_q25[length(payouts_q25)], 2), "\n",
-            "75th Percentile: $", round(payouts_q75[length(payouts_q75)], 2)
+            "15th Percentile: $", round(payouts_q15[length(payouts_q15)], 2), "\n",
+            "25th Percentile: $", round(payouts_q25[length(payouts_q25)], 2), "\n"
         ),
         cex = 0.8, col = "black"
     )

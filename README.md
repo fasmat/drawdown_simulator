@@ -27,22 +27,26 @@ market data to model the returns of the portfolio, which is loaded from a CSV fi
 ```R
 source("drawdown.R")
 simulate_drawdown(
-  initial_portfolio_value = 1000000,        # Initial portfolio value
-  expected_return = 0.05,                   # Expected yearly return (e.g., 5%)
-  drawdown_period = 30,                     # Number of years in the drawdown period
-  historical_data_file = "sp500.csv",       # Path to the historical returns data file
-  max_payout = default_payout,              # Maximum payout function (e.g., $50,000 per year)
-  num_simulations = 10000,                  # Number of simulations to run
+    initial_portfolio_value = 1000000,  # Initial portfolio value
+    expected_return = 0.05,             # Expected yearly return (e.g., 5%)
+    drawdown_period = 30,               # Number of years in the drawdown period
+    historical_data = c(
+        "data/stocks/sp500.csv",
+        "data/bonds/10y_us_treasury.csv"
+    ), # Path to the historical returns data file(s)
+    investment_split = c(0.7, 0.3),     # Investment split between assets (e.g., 70% stocks, 30% bonds)
+    max_payout = default_payout,        # Maximum payout function (e.g., $50,000 per year)
+    num_simulations = 100000            # Number of simulations to run
 )
 ```
 
 The `max_payout` function allows you to specify a maximum payout for each year. This decreases the risk of depleting
 the portfolio too quickly, resulting in low payouts in later years. For example, if you want to limit the payout to
-$50,000 per year increasing with inflation, you can define the `max_payout` function as follows:
+$66,000 per year increasing with inflation, you can define the `max_payout` function as follows:
 
 ```R
 default_payout <- function(year) {
-  return(50000 * (1.03)^(year - 1))  # Assuming 3% inflation per year
+  return(66000 * (1.03)^(year - 1))  # Assuming 3% inflation per year
 }
 ```
 
@@ -82,14 +86,7 @@ The simulator will output statistics on the payout amounts and the remaining por
 period. You can plot the data with the following code:
 
 ```R
-data <- simulate_drawdown(
-  initial_portfolio_value = 1000000,
-  expected_return = 0.05,
-  drawdown_period = 30,
-  historical_data_file = "sp500.csv",
-  max_payout = default_payout,
-  num_simulations = 10000
-)
+data <- simulate_drawdown()
 plot_drawdown(data)
 ```
 
