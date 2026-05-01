@@ -51,8 +51,7 @@
 				"github.copilot",
                 "eamodio.gitlens",
                 "davidanson.vscode-markdownlint",
-                "Ikuyadeu.r",
-                "RDebugger.r-debugger",
+				"REditorSupport.r",
     			"redhat.vscode-yaml",            
 				"vscode-icons-team.vscode-icons"         
             ]
